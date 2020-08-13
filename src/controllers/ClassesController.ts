@@ -1,5 +1,5 @@
 
-import {Request, response, Response} from "express";
+import {Request, Response} from "express";
 import db from "../database/connection";
 import converHourToMinutes from "../utils/convertHourToMinutes";
 
@@ -19,10 +19,12 @@ export default class ClassesController {
         const time = filters.time as string;
 
         if (!filters.week_day || !filters.subject || !filters.time) {
-            return response.status(400).json({
+            return res.status(400).json({
                 error: 'Missing filters to search classes'
             });
         }
+
+        const timeInMinutes  = converHourToMinutes(time);
 
         const classes = await db('classes')
             .whereExists(function() {
@@ -34,11 +36,8 @@ export default class ClassesController {
                     .whereRaw('`class_schedule`.`to` > ??', [timeInMinutes])
             })
             .where('classes.subject', '=', subject)
-            .join('users', 'classes.user_id', "=", "users_id")
+            .join('users', 'classes.user_id', "=", "users.id")
             .select(['classes.*', 'users.*']);
-
-
-        const timeInMinutes  = converHourToMinutes(time);
 
         return res.json(classes);
     }
